@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 from collections import deque
-from datetime import datetime
 from typing import Callable, Coroutine, Deque, Dict, List, Set, Type
 
 import websockets
@@ -52,7 +51,7 @@ class BinanceClientWebsocketStreamManagerImpl(BinanceClientWebsocketStreamManage
     @classmethod
     async def create(
         cls: Type[BinanceClientWebsocketStreamManagerImpl],
-        callbacks: dict[Type[EventType], CallbackFunctionType] = None,
+        callbacks: dict[EventType, CallbackFunctionType],
         connection_url: str = "wss://stream.binance.com:9443/ws",
         max_streams: int = 1024,
         max_messages_per_second: int = 5,
@@ -95,7 +94,7 @@ class BinanceClientWebsocketStreamManagerImpl(BinanceClientWebsocketStreamManage
         )
 
     async def stop(self) -> None:
-        self._is_listening = Fa
+        self._is_listening = False
         self._listening_task.cancel()
         self._messages_sending_task.cancel()
         self._subscriptions.clear()
@@ -113,6 +112,32 @@ class BinanceClientWebsocketStreamManagerImpl(BinanceClientWebsocketStreamManage
             raise ValueError(
                 f"Cannot create more than {self._max_streams}. Currently connected {len(self._subscriptions)} streams"
             )
+
+        tasks: List[asyncio.Task] = list()
+        step = 5
+        for i in range(0, len(params) - 1 - step, step):
+            step_params = params[i : i + step]
+            tasks.append(
+                asyncio.create_task(
+                    self._send_message_with_id(
+                        RequestModel(method=Method.SUBSCRIBE, params=step_params)
+                    )
+                )
+            )
+        if len(params) % step != 0:
+            tasks.append(
+                asyncio.create_task(
+                    self._send_message_with_id(
+                        RequestModel(
+                            method=Method.SUBSCRIBE,
+                            params=params[len(params) // step * step :],
+                        )
+                    )
+                )
+            )
+
+        await asyncio.gather(tasks)
+        del tasks
 
         await self._send_message_with_id(
             RequestModel(method=Method.SUBSCRIBE, params=params)
