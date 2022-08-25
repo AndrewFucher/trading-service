@@ -8,6 +8,8 @@ dotenv.load_dotenv()
 logger.info("Setting config parameters")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_API_TOKEN")
+TELEGRAM_USER_ID = os.getenv("TELEGRAM_USER_ID")
+
 LOGGIN_FORMAT = os.getenv(
     "LOGGIN_FORMAT",
     (

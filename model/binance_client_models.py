@@ -47,10 +47,10 @@ class ValidationUtils:
 class RequestModel(BaseModel):
     method: Method
     params: Set[str | bool] | None
-    id: int = Field(default_factory=lambda _: randint(0, 2**64 - 1))
+    id: int = Field(default_factory=lambda: randint(0, 2**64 - 1))
 
     @validator("params", each_item=True)
-    def validate_param(cls, param: str | bool) -> str | bool:
+    def validate_every_param(cls, param: str | bool) -> str | bool:
         if isinstance(param, str):
             if not ValidationUtils.PARAM_REGEX.match(param):
                 raise ValidationError(f"Invalid param pattern for param '{param}'")
@@ -58,7 +58,7 @@ class RequestModel(BaseModel):
         return param
 
     @validator("params")
-    def validate_param(
+    def validate_params(
         cls, params: Set[str | bool] | None, values: dict[str, Any]
     ) -> Set[str | bool]:
         if values["method"] != Method.LIST_SUBSCRIPTIONS and not params:
@@ -124,7 +124,7 @@ class KLineData(BaseModel):
     base_asset_volume: float = Field(alias="v")
     number_of_trades: int = Field(alias="n")
     is_kline_closed: bool = Field(alias="x")
-    quote_asset_volume: float = Field("q")
+    quote_asset_volume: float = Field(alias="q")
     taker_buy_base_asset_volume: float = Field(alias="V")
     taker_buy_quote_asset_volume: float = Field(alias="Q")
     # value_to_ignore: float = Field(alias="B")
